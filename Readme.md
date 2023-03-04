@@ -2,10 +2,8 @@
 
 ![Screenshot](/Screenshot.png)
 
-Basic system stats in the menu bar that don't look out of place.
+Basic system stats in the menu bar that don't look out of place, and match the statistics in Activity Monitor.
+
  - Outer ring shows CPU usage
  - Inner ring shows memory pressure
-
-Data for both matches activity monitor.
-
-Contains absolutely no settings.
+ 

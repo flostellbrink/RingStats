@@ -1,4 +1,5 @@
 import SwiftUI
+import LaunchAtLogin
 
 @NSApplicationMain
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -7,15 +8,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var timer: Timer?
     
     var statistics: Statistics!
-    
+
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         self.statistics = Statistics()
         
         self.statusBarItem = NSStatusBar.system.statusItem(withLength: CGFloat(NSStatusItem.variableLength))
-        
-        if let button = self.statusBarItem.button {
-            button.action = #selector(AppDelegate.openActivityMonitor(_:))
-        }
+
+        let statusBarMenu = NSMenu(title: "RingStats")
+        statusBarMenu.addItem(NSMenuItem(title: "RingStats", action: nil, keyEquivalent: ""))
+        statusBarMenu.addItem(NSMenuItem.separator())
+
+        let openAtLoginItem = NSMenuItem(title: "Open at Login", action: #selector(AppDelegate.toggleOpenAtLogin(_:)), keyEquivalent: "")
+        openAtLoginItem.state = LaunchAtLogin.isEnabled ? NSControl.StateValue.on : NSControl.StateValue.off
+        statusBarMenu.addItem(openAtLoginItem)
+
+        let openActivityMonitorItem = NSMenuItem(title: "Open Activity Monitor", action: #selector(AppDelegate.openActivityMonitor(_:)), keyEquivalent: "")
+        statusBarMenu.addItem(openActivityMonitorItem)
+
+        statusBarMenu.addItem(NSMenuItem.separator())
+
+        let quitItem = NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        statusBarMenu.addItem(quitItem)
+
+        statusBarItem.menu = statusBarMenu
         
         updateStats()
 
@@ -70,6 +85,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 innerProgress: clamp(value: memoryPressure), innerRadius: 5,
                 outerProgress: clamp(value: processorPressure), outerRadius: 8)
         }
+    }
+
+    @objc func toggleOpenAtLogin(_ sender: AnyObject?) {
+        LaunchAtLogin.isEnabled.toggle()
+
+        let item = sender as! NSMenuItem
+        item.state = LaunchAtLogin.isEnabled ? NSControl.StateValue.on : NSControl.StateValue.off
     }
 
     @objc func openActivityMonitor(_ sender: AnyObject?) {
