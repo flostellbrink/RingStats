@@ -4,6 +4,8 @@ import LaunchAtLogin
 @NSApplicationMain
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusBarItem: NSStatusItem!
+    var ramMenuItem: NSMenuItem!
+    var cpuMenuItem: NSMenuItem!
 
     var timer: Timer?
     
@@ -14,15 +16,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         self.statusBarItem = NSStatusBar.system.statusItem(withLength: CGFloat(NSStatusItem.variableLength))
 
-        let statusBarMenu = NSMenu(title: "RingStats")
-        statusBarMenu.addItem(NSMenuItem(title: "RingStats", action: nil, keyEquivalent: ""))
+        let statusBarMenu = NSMenu()
+
+        let titleFont = NSFont.boldSystemFont(ofSize: NSFont.systemFontSize)
+        let title = NSAttributedString(string: "Ring Stats", attributes: [.font: titleFont])
+        statusBarMenu.addItem(withTitle: "", action: nil, keyEquivalent: "").attributedTitle = title
+        
+        self.ramMenuItem = statusBarMenu.addItem(withTitle: "", action: nil, keyEquivalent: "")
+        self.cpuMenuItem = statusBarMenu.addItem(withTitle: "", action: nil, keyEquivalent: "")
+
         statusBarMenu.addItem(NSMenuItem.separator())
 
         let openAtLoginItem = NSMenuItem(title: "Open at Login", action: #selector(AppDelegate.toggleOpenAtLogin(_:)), keyEquivalent: "")
         openAtLoginItem.state = LaunchAtLogin.isEnabled ? NSControl.StateValue.on : NSControl.StateValue.off
         statusBarMenu.addItem(openAtLoginItem)
 
-        let openActivityMonitorItem = NSMenuItem(title: "Open Activity Monitor", action: #selector(AppDelegate.openActivityMonitor(_:)), keyEquivalent: "")
+        let openActivityMonitorItem = NSMenuItem(title: "Open Activity Monitor...", action: #selector(AppDelegate.openActivityMonitor(_:)), keyEquivalent: "")
         statusBarMenu.addItem(openActivityMonitorItem)
 
         statusBarMenu.addItem(NSMenuItem.separator())
@@ -33,19 +42,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusBarItem.menu = statusBarMenu
         
         updateStats()
+        self.timer = Timer.scheduledTimer(timeInterval: 2, target: self, selector: #selector(AppDelegate.updateStats), userInfo: nil, repeats: true)
+        RunLoop.current.add(self.timer!, forMode: RunLoop.Mode.common)
 
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true, block: { (timer) in
-            self.updateStats()
-        })
-        
         NSApp.activate(ignoringOtherApps: true)
     }
 
     
     
-    func drawCircularProgress(innerProgress: CGFloat, innerRadius: Int, outerProgress: CGFloat, outerRadius: Int) -> NSImage {
+    func drawCircularProgress(innerProgress: CGFloat, innerRadius: Int, outerProgress: CGFloat, outerRadius: Int, color: NSColor) -> NSImage {
         let image = NSImage(size: NSSize(width: 20, height: 20), flipped: false) { rect in
-            NSColor.white.withAlphaComponent(0.2).setStroke()
+            color.withAlphaComponent(0.2).setStroke()
             
             let innerBackground = NSBezierPath()
             innerBackground.appendArc(withCenter: CGPoint(x: rect.midX, y: rect.midY), radius: CGFloat(innerRadius), startAngle: 0, endAngle: 360)
@@ -57,7 +64,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             outerBackground.lineWidth = 2
             outerBackground.stroke()
             
-            NSColor.white.setStroke()
+            color.setStroke()
 
             let innerPath = NSBezierPath()
             innerPath.appendArc(withCenter: CGPoint(x: rect.midX, y: rect.midY), radius: CGFloat(innerRadius), startAngle: 90, endAngle: 360 + 90 - 360 * innerProgress, clockwise: true)
@@ -77,13 +84,34 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return max(0.01, min(0.99, value))
     }
 
-    func updateStats() {
+    @objc func updateStats() {
+        let memoryPressure = statistics.getMemoryPressure()
+        let processorPressure = statistics.getProcessorPressure()
+
+        let font = NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
+
+        self.ramMenuItem.attributedTitle = NSAttributedString(
+            string: String(format: "%2d%% Memory Pressure",Int(memoryPressure * 100)),
+            attributes: [.font: font])
+        self.ramMenuItem.image = drawCircularProgress(
+            innerProgress: clamp(value: memoryPressure), innerRadius: 5,
+            outerProgress: 0, outerRadius: 8,
+            color: NSColor.black)
+
+        self.cpuMenuItem.attributedTitle = NSAttributedString(
+            string: String(format: "%2d%% Processor Load",Int(processorPressure * 100)),
+            attributes: [.font: font])
+        self.cpuMenuItem.image = drawCircularProgress(
+            innerProgress: 0, innerRadius: 5,
+            outerProgress: clamp(value: processorPressure), outerRadius: 8,
+            color: NSColor.black)
+
         if let button = self.statusBarItem.button {
-            let memoryPressure = statistics.getMemoryPressure()
-            let processorPressure = statistics.getProcessorPressure()
             button.image = drawCircularProgress(
                 innerProgress: clamp(value: memoryPressure), innerRadius: 5,
-                outerProgress: clamp(value: processorPressure), outerRadius: 8)
+                outerProgress: clamp(value: processorPressure), outerRadius: 8,
+                color: NSColor.white)
+            
         }
     }
 
