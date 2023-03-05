@@ -1,0 +1,32 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Build RingStats.app
+        run: |
+          xcodebuild -project RingStats.xcodeproj -scheme RingStats -configuration Release -derivedDataPath build
+      - name: Create DMG
+        continue-on-error: true
+        run: |
+          npm install --global create-dmg
+          create-dmg build/Build/Products/Release/RingStats.app
+      - name: Rename DMG
+        run: |
+          mv RingStats*.dmg RingStats.dmg
+      - name: Upload to Tag
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: RingStats.dmg
+          tag: ${{ github.ref }}
+          overwrite: true
