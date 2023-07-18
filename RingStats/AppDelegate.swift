@@ -48,8 +48,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    
-    
     func drawCircularProgress(innerProgress: CGFloat, innerRadius: Int, outerProgress: CGFloat, outerRadius: Int, color: NSColor) -> NSImage {
         let image = NSImage(size: NSSize(width: 20, height: 20), flipped: false) { rect in
             color.withAlphaComponent(0.2).setStroke()
@@ -64,7 +62,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             outerBackground.lineWidth = 2
             outerBackground.stroke()
             
-            color.setStroke()
+            color.withAlphaComponent(0.9).setStroke()
 
             let innerPath = NSBezierPath()
             innerPath.appendArc(withCenter: CGPoint(x: rect.midX, y: rect.midY), radius: CGFloat(innerRadius), startAngle: 90, endAngle: 360 + 90 - 360 * innerProgress, clockwise: true)
@@ -87,6 +85,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func updateStats() {
         let memoryPressure = statistics.getMemoryPressure()
         let processorPressure = statistics.getProcessorPressure()
+        if memoryPressure.isNaN || processorPressure.isNaN {
+            return
+        }
 
         let font = NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
 
@@ -110,7 +111,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             button.image = drawCircularProgress(
                 innerProgress: clamp(value: memoryPressure), innerRadius: 5,
                 outerProgress: clamp(value: processorPressure), outerRadius: 8,
-                color: NSColor.white)
+                color: button.effectiveAppearance.name.rawValue.lowercased().contains("dark") ? NSColor.white : NSColor.black)
             
         }
     }
